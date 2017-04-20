@@ -64,6 +64,7 @@ int main()
         int *out1 = (int *) malloc(sizeof(int) * TEST_W * TEST_H);
         int *out2 = (int *) malloc(sizeof(int) * TEST_W * TEST_H);
         int *out3 = (int *) malloc(sizeof(int) * TEST_W * TEST_H);
+        int *out4 = (int *) malloc(sizeof(int) * TEST_W * TEST_H);
 
         srand(time(NULL));
         for (int y = 0; y < TEST_H; y++)
@@ -90,11 +91,17 @@ int main()
         clock_gettime(CLOCK_REALTIME, &end);
         printf("avx: \t %ld us\n", diff_in_us(start, end));
 
+        clock_gettime(CLOCK_REALTIME, &start);
+        avx_prefetch_transpose(src, out4, TEST_W, TEST_H);
+        clock_gettime(CLOCK_REALTIME, &end);
+        printf("avx prefetch: \t %ld us\n", diff_in_us(start, end));
+
         free(src);
         free(out0);
         free(out1);
         free(out2);
         free(out3);
+        free(out4);
     }
 
     return 0;
