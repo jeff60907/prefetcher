@@ -1,6 +1,10 @@
 #ifndef TRANSPOSE_IMPL
 #define TRANSPOSE_IMPL
 
+typedef struct {
+    void (*transpose)(int *src, int *dst, int w, int h);
+} matrix_t;
+
 void naive_transpose(int *src, int *dst, int w, int h)
 {
     for (int x = 0; x < w; x++)
@@ -66,6 +70,7 @@ void avx_transpose(int *src, int *dst, int w, int h)
 {
     for ( int x = 0; x < w; x += 8 ) {
         for ( int y = 0; y < h; y += 8 ) {
+
             __m256i ymm0 = _mm256_loadu_si256((__m256i *) (src + (y + 0) * w + x));
             __m256i ymm1 = _mm256_loadu_si256((__m256i *) (src + (y + 1) * w + x));
             __m256i ymm2 = _mm256_loadu_si256((__m256i *) (src + (y + 2) * w + x));
@@ -84,14 +89,14 @@ void avx_transpose(int *src, int *dst, int w, int h)
             __m256  T6 = _mm256_unpacklo_ps((__m256 )ymm6, (__m256 )ymm7);
             __m256  T7 = _mm256_unpackhi_ps((__m256 )ymm6, (__m256 )ymm7);
 
-            __m256 ymm10 = _mm256_unpacklo_ps(T0, T2);
-            __m256 ymm11 = _mm256_unpackhi_ps(T0, T2);
-            __m256 ymm12 = _mm256_unpacklo_ps(T1, T3);
-            __m256 ymm13 = _mm256_unpackhi_ps(T1, T3);
-            __m256 ymm14 = _mm256_unpacklo_ps(T4, T6);
-            __m256 ymm15 = _mm256_unpackhi_ps(T4, T6);
-            __m256 ymm16 = _mm256_unpacklo_ps(T5, T7);
-            __m256 ymm17 = _mm256_unpackhi_ps(T5, T7);
+            __m256 ymm10 = _mm256_shuffle_ps(T0,T2, 0x44);
+            __m256 ymm11 = _mm256_shuffle_ps(T0,T2, 0xEE);
+            __m256 ymm12 = _mm256_shuffle_ps(T1,T3, 0x44);
+            __m256 ymm13 = _mm256_shuffle_ps(T1,T3, 0xEE);
+            __m256 ymm14 = _mm256_shuffle_ps(T4,T6, 0x44);
+            __m256 ymm15 = _mm256_shuffle_ps(T4,T6, 0xEE);
+            __m256 ymm16 = _mm256_shuffle_ps(T5,T7, 0x44);
+            __m256 ymm17 = _mm256_shuffle_ps(T5,T7, 0xEE);
 
             T0 = _mm256_permute2f128_ps(ymm10, ymm14, 0x20);
             T1 = _mm256_permute2f128_ps(ymm11, ymm15, 0x20);
@@ -146,14 +151,14 @@ void avx_prefetch_transpose(int *src, int *dst, int w, int h)
             __m256  T6 = _mm256_unpacklo_ps((__m256 )ymm6, (__m256 )ymm7);
             __m256  T7 = _mm256_unpackhi_ps((__m256 )ymm6, (__m256 )ymm7);
 
-            __m256 ymm10 = _mm256_unpacklo_ps(T0, T2);
-            __m256 ymm11 = _mm256_unpackhi_ps(T0, T2);
-            __m256 ymm12 = _mm256_unpacklo_ps(T1, T3);
-            __m256 ymm13 = _mm256_unpackhi_ps(T1, T3);
-            __m256 ymm14 = _mm256_unpacklo_ps(T4, T6);
-            __m256 ymm15 = _mm256_unpackhi_ps(T4, T6);
-            __m256 ymm16 = _mm256_unpacklo_ps(T5, T7);
-            __m256 ymm17 = _mm256_unpackhi_ps(T5, T7);
+            __m256 ymm10 = _mm256_shuffle_ps(T0,T2, 0x44);
+            __m256 ymm11 = _mm256_shuffle_ps(T0,T2, 0xEE);
+            __m256 ymm12 = _mm256_shuffle_ps(T1,T3, 0x44);
+            __m256 ymm13 = _mm256_shuffle_ps(T1,T3, 0xEE);
+            __m256 ymm14 = _mm256_shuffle_ps(T4,T6, 0x44);
+            __m256 ymm15 = _mm256_shuffle_ps(T4,T6, 0xEE);
+            __m256 ymm16 = _mm256_shuffle_ps(T5,T7, 0x44);
+            __m256 ymm17 = _mm256_shuffle_ps(T5,T7, 0xEE);
 
             T0 = _mm256_permute2f128_ps(ymm10, ymm14, 0x20);
             T1 = _mm256_permute2f128_ps(ymm11, ymm15, 0x20);
@@ -176,5 +181,35 @@ void avx_prefetch_transpose(int *src, int *dst, int w, int h)
     }
 }
 
+
+int naive_init(matrix_t *self)
+{
+    self->transpose = &naive_transpose;
+    return 0;
+}
+
+int sse_init(matrix_t *self)
+{
+    self->transpose = &sse_transpose;
+    return 0;
+}
+
+int sse_prefetch_init(matrix_t *self)
+{
+    self->transpose = &sse_prefetch_transpose;
+    return 0;
+}
+
+int avx_init(matrix_t *self)
+{
+    self->transpose = &avx_transpose;
+    return 0;
+}
+
+int avx_prefetch_init(matrix_t *self)
+{
+    self->transpose = &avx_prefetch_transpose;
+    return 0;
+}
 
 #endif /* TRANSPOSE_IMPL */
